@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="TicTacToe.Web/TicTacToe.Web.csproj" />
+  <Project Path="TicTacToe.Datasource/TicTacToe.Datasource.csproj" />
+  <Project Path="TicTacToe.DI/TicTacToe.DI.csproj" />
+  <Project Path="TicTacToe.Domain/TicTacToe.Domain.csproj" />
+</Solution>
