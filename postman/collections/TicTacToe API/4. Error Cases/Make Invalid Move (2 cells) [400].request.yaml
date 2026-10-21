@@ -1,0 +1,25 @@
+$kind: http-request
+url: "{{baseUrl}}/game/{{gameId}}"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "id": "{{gameId}}",
+        "board": [
+            [1, 1, 1],
+            [1, 1, 1],
+            [1, 1, 1]
+        ],
+        "status": "InProgress"
+    }
+auth:
+  type: basic
+  credentials:
+    username: "{{username}}"
+    password: "{{password}}"
+scripts:
+  - type: afterResponse
+    code: pm.test("Status 400 Bad Request", () => pm.response.to.have.status(400));
+    language: text/javascript
+order: 5000

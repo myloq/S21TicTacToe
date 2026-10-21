@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/game"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "opponentType": "bot"
+    }
+auth:
+  type: basic
+  credentials:
+    username: "{{username}}"
+    password: "{{password}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status 200", () => pm.response.to.have.status(200));
+      pm.test("Status is InProgress", () => pm.expect(pm.response.json().status).to.eql('InProgress'));
+      pm.test("Player 2 is null (Bot)", () => pm.expect(pm.response.json().player2Id).to.be.null);
+      const res = pm.response.json();
+      if (res.id) pm.environment.set("botGameId", res.id);
+    language: text/javascript
+order: 1000
