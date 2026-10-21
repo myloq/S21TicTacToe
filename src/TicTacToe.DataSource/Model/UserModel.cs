@@ -6,15 +6,15 @@ namespace TicTacToe.Datasource.Model;
 [Table("users")]
 public class UserModel
 {
-    [Key] [Column("id")] public Guid PlayerId { get; init; }
+    [Key] [Column("id")] public required Guid PlayerId { get; init; }
 
     [Required]
     [Column("login")]
     [MaxLength(64)]
-    public string Login { get; set; }
+    public required string Login { get; set; }
 
     [Required]
     [Column("password")]
     [MaxLength(64)]
-    public string Password { get; set; }
+    public required string Password { get; set; }
 }

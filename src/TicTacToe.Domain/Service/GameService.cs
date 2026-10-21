@@ -7,13 +7,21 @@ namespace TicTacToe.Domain.Service;
 
 public class GameService(IRepository repository) : IGameService
 {
-    private readonly GameStatusExtension _statusExtension = new();
-    public Game CreateGame(Guid userId)
+    public Game CreateGame(Guid userId, bool againstBot)
     {
-        Game game = new Game(Guid.NewGuid(), userId, null, new GameField(new int[3,3]), GameStatus.CrossTurn);
-        int botOrder = RandomNumberGenerator.GetInt32(1, 3);
-        if(botOrder == 1) game = GetBestMove(game);
-        
+        int player1Symbol = RandomNumberGenerator.GetInt32(1, 3);
+        int player2Symbol = player1Symbol == 1 ? 2 : 1;
+        Guid? currentPlayerId = player1Symbol == 1 ? userId : null;
+        Game game = new Game(Guid.NewGuid(), userId, null, new GameField(new int[3, 3]), GameStatus.WaitingForPlayers,
+            currentPlayerId, null, player1Symbol, player2Symbol);
+
+        if (againstBot) // Игра с ботом
+        {
+            if (currentPlayerId == null) game = GetBestMove(game);
+            game.ChangeStatus(GameStatus.InProgress);
+        }
+        // Иначе "WaitingForPlayers" - игра с игроком
+
         repository.Save(game);
         return game;
     }
@@ -21,153 +29,193 @@ public class GameService(IRepository repository) : IGameService
     public Game GetGame(Guid userId, Guid gameId)
     {
         var game = repository.GetGame(gameId) ?? throw new GameNotFoundException(gameId);
-        if (game.Player1Id != userId && game.Player2Id != userId) throw new GameNotFoundException(gameId); 
+        if (game.Player1Id != userId && game.Player2Id != userId) throw new GameNotFoundException(gameId);
         return game;
     }
 
     public Game MakeMove(Guid userId, Guid gameId, Game incoming)
     {
         var current = repository.GetGame(gameId) ?? throw new GameNotFoundException(gameId);
-        if (current.Player1Id != userId && current.Player2Id != userId) throw new GameNotFoundException(gameId); 
+        if (current.Player1Id != userId && current.Player2Id != userId) throw new GameNotFoundException(gameId);
+        if (userId != current.CurrentPlayerId) throw new InvalidMoveException("Current player Id is not valid");
         if (!ValidateGame(incoming, current)) throw new GameValidationException("Cannot validate the game");
 
-        var status = CheckForWinner(incoming);
-        if (status != GameStatus.InGame)
+        for (var i = 0; i < 3; i++)
+        for (var j = 0; j < 3; j++)
+            current.Field.Board[i, j] = incoming.Field.Board[i, j];
+
+        var status = CheckForWinner(current);
+        if (status is GameStatus.Win or GameStatus.Draw)
         {
-            incoming.ChangeStatus(status);
-            repository.Save(incoming);
-            return incoming;
+            current.ChangeStatus(status);
+            if (status == GameStatus.Win) current.WinnerId = userId;
+            repository.Save(current);
+            return current;
         }
-        
-        incoming.ChangeStatus(_statusExtension.GetOpponentStatus(incoming.Status));
-        
-        Game botMove = GetBestMove(incoming);
-        
-        status = CheckForWinner(botMove);
-        botMove.ChangeStatus(status == GameStatus.InGame ? botMove.Status : status);
-        
-        repository.Save(botMove);
-        return botMove;
+
+        current.ChangeCurrentPlayerId();
+
+        if (current.Player2Id == null)
+        {
+            var botMove = GetBestMove(current);
+            status = CheckForWinner(botMove);
+
+            if (status is GameStatus.Win or GameStatus.Draw)
+            {
+                botMove.ChangeStatus(status);
+                if (status == GameStatus.Win) botMove.WinnerId = null;
+            }
+
+            repository.Save(botMove);
+            return botMove;
+        }
+
+        repository.Save(current);
+        return current;
     }
-    
+
     public Game GetBestMove(Game game)
     {
-        int player = GetPlayer(game.Status);
+        int botSymbol = game.Player2Symbol;
         int bestScore = int.MinValue;
-        int bestIndex = -1;
-        int[,] board = game.Field.Board;
+        int bestRow = -1, bestCol = -1;
+        int[,] board = (int[,])game.Field.Board.Clone();
 
-        for (int i = 0; i < 9; i++)
+        for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
         {
-            if (board[i / 3, i % 3] != 0) continue;
-
-            board[i / 3, i % 3] = player;
-            int score = MiniMax(board, _statusExtension.GetOpponentStatus(game.Status), player, 0);
-            board[i / 3, i % 3] = 0;
-            
-            if (score > bestScore)
+            if (board[i, j] == 0)
             {
-                bestScore = score;
-                bestIndex = i;
+                board[i, j] = botSymbol;
+                int nextSymbol = botSymbol == 1 ? 2 : 1;
+                int score = MiniMax(board, nextSymbol, botSymbol, 0);
+                board[i, j] = 0;
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestRow = i;
+                    bestCol = j;
+                }
             }
         }
 
-        if (bestIndex == -1) return game;
+        if (bestRow == -1) return game;
 
-        Game result = new Game(game.Id, game.Player1Id, game.Player2Id, new GameField(game.Field.Board),
-            _statusExtension.GetOpponentStatus(game.Status));
-        result.Field.Board[bestIndex/3, bestIndex% 3] = player;
+        Game result = new Game(game.Id, game.Player1Id, game.Player2Id, new GameField(board),
+            game.Status, game.CurrentPlayerId, null, game.Player1Symbol, game.Player2Symbol);
+
+        result.Field.Board[bestRow, bestCol] = botSymbol;
+        result.ChangeCurrentPlayerId();
         return result;
     }
-    
-    private int MiniMax(int[,] board, GameStatus gameStatus, int role, int depth)
+
+    private int MiniMax(int[,] board, int currentSymbol, int botSymbol, int depth)
     {
         var status = CheckForWinner(board);
-        switch (status)
+        if (status is GameStatus.Win or GameStatus.Draw)
         {
-            case GameStatus.CrossWin: return role == 1 ? 10 - depth : depth - 10;
-            case GameStatus.Draw: return 0;
-            case GameStatus.ZeroWin: return role == 2 ? 10 - depth : depth - 10;
+            if (status == GameStatus.Draw) return 0;
+            if (currentSymbol != botSymbol) return 10 - depth;
+            return depth - 10;
         }
 
-        int currentPlayer = GetPlayer(gameStatus);
+        bool isMaximizing = currentSymbol == botSymbol;
+        int bestScore = isMaximizing ? int.MinValue : int.MaxValue;
+        int nextSymbol = currentSymbol == 1 ? 2 : 1;
 
-        int bestScore = currentPlayer == role ? int.MinValue : int.MaxValue;
-
-        for (int i = 0; i < 9; i++)
+        for (int i = 0; i < 3; i++)
         {
-            if (board[i / 3, i % 3] != 0) continue;
-
-            board[i / 3, i % 3] = currentPlayer;
-
-            var nextStatus = currentPlayer == 1
-                ? GameStatus.ZeroTurn
-                : GameStatus.CrossTurn;
-
-            int score = MiniMax(board, nextStatus, role, depth + 1);
-
-            board[i / 3, i % 3] = 0;
-
-            if (currentPlayer == role)
+            for (int j = 0; j < 3; j++)
             {
-                if (score > bestScore) bestScore = score;
-            }
-            else
-            {
-                if (score < bestScore) bestScore = score;
+                if (board[i, j] == 0)
+                {
+                    board[i, j] = currentSymbol;
+                    int score = MiniMax(board, nextSymbol, botSymbol, depth + 1);
+                    board[i, j] = 0;
+
+                    if (isMaximizing) bestScore = Math.Max(bestScore, score);
+                    else bestScore = Math.Min(bestScore, score);
+                }
             }
         }
 
         return bestScore;
     }
 
-    private static int GetPlayer(GameStatus status) =>
-        status == GameStatus.CrossTurn ? 1 : 2;
-
-    public bool ValidateGame(Game game, Game lastState)
+    public bool ValidateGame(Game incoming, Game current)
     {
-        if (game.Id != lastState.Id) return false;
-        if (game.Status != lastState.Status) return false;
-        if (game.Status != GameStatus.CrossTurn && game.Status != GameStatus.ZeroTurn) return false;
+        if (incoming.Id != current.Id) return false;
+        if (incoming.Status != current.Status) return false;
+        if (current.Status != GameStatus.InProgress) return false;
 
-        GameField newField = game.Field;
-        GameField oldField = lastState.Field;
+        int expectedSymbol = current.GetPlayerSymbol(current.CurrentPlayerId);
+        int changesCount = 0;
 
-        for (var i = 0; i < newField.Board.GetLength(0); i++)
+        for (var i = 0; i < 3; i++)
         {
-            for (var j = 0; j < newField.Board.GetLength(1); j++)
+            for (var j = 0; j < 3; j++)
             {
-                if (newField.Board[i, j] != oldField.Board[i, j] && newField.Board[i, j] != GetPlayer(game.Status))
-                    return false;
+                if (incoming.Field.Board[i, j] != current.Field.Board[i, j])
+                {
+                    changesCount++;
+                    if (current.Field.Board[i, j] != 0 || incoming.Field.Board[i, j] != expectedSymbol)
+                        return false;
+                }
             }
         }
 
-        return true;
+        return changesCount == 1;
     }
 
     public GameStatus CheckForWinner(Game game) => CheckForWinner(game.Field.Board);
-    
+
     private static GameStatus CheckForWinner(int[,] board)
     {
         for (var i = 0; i < board.GetLength(0); i++)
-        {
-            if (board[i, 0] == board[i, 1] && board[i, 1] == board[i, 2] && 
-                board[i, 0] != 0) return board[i, 0] == 1 ? GameStatus.CrossWin : GameStatus.ZeroWin;
-        }
-        
+            if (board[i, 0] == board[i, 1] && board[i, 1] == board[i, 2] && board[i, 0] != 0)
+                return GameStatus.Win;
+
         for (var i = 0; i < board.GetLength(0); i++)
-        {
-            if (board[0, i] == board[1, i] && board[1, i] == board[2, i] && 
-                board[0, i] != 0) return board[0, i] == 1 ? GameStatus.CrossWin : GameStatus.ZeroWin;
-        }
-        
+            if (board[0, i] == board[1, i] && board[1, i] == board[2, i] && board[0, i] != 0)
+                return GameStatus.Win;
+
         if (((board[0, 0] == board[1, 1] && board[1, 1] == board[2, 2]) ||
-             (board[0, 2] == board[1, 1] && board[1, 1] == board[2, 0])) && 
-            board[1, 1] != 0) return board[1, 1] == 1 ? GameStatus.CrossWin : GameStatus.ZeroWin;
+             (board[0, 2] == board[1, 1] && board[1, 1] == board[2, 0])) &&
+            board[1, 1] != 0) return GameStatus.Win;
+        ;
+
         foreach (int i in board)
-        {
-            if (i == 0) return GameStatus.InGame;
-        }
+            if (i == 0)
+                return GameStatus.InProgress;
+
         return GameStatus.Draw;
+    }
+
+    public IEnumerable<Game> GetAvailableGames(Guid userId)
+    {
+        var games = repository.GetAvailableGames();
+
+        return games.Where(g => g.Player1Id != userId);
+    }
+
+    public Game JoinGame(Guid currentUserId, Guid gameId)
+    {
+        var game = repository.GetGame(gameId);
+        if (game is null || game.Status != GameStatus.WaitingForPlayers) throw new GameNotFoundException(gameId);
+
+        if (game.Player1Id == currentUserId)
+            throw new GameValidationException("You cannot join your own game");
+
+        game.ChangeStatus(GameStatus.InProgress);
+        game.Player2Id = currentUserId;
+
+        if (game.CurrentPlayerId == null)
+        {
+            game.SetCurrentPlayerId(currentUserId);
+        }
+
+        repository.Save(game);
+        return game;
     }
 }

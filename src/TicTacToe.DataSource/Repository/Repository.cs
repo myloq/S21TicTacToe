@@ -19,7 +19,11 @@ public class Repository(AppDbContext db) : IRepository
         {
             existing.Board = model.Board;
             existing.Status = model.Status;
-            existing.Player2Id = game.Player2Id;
+            existing.Player2Id = model.Player2Id;
+            existing.CurrentPlayerId = model.CurrentPlayerId;
+            existing.WinnerId = model.WinnerId;
+            existing.Player1Symbol = model.Player1Symbol;
+            existing.Player2Symbol = model.Player2Symbol;
         }
 
         db.SaveChanges();
@@ -29,5 +33,12 @@ public class Repository(AppDbContext db) : IRepository
     {
         var model = db.Games.Find(id);
         return model is null ? null : DataModelMapper.ToGame(model);
+    }
+
+    public IEnumerable<Game> GetAvailableGames()
+    {
+        return db.Games.Where(g => g.Status == (int)GameStatus.WaitingForPlayers)
+            .AsEnumerable().Select(DataModelMapper.ToGame)
+            .ToList();
     }
 }

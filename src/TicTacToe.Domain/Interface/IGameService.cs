@@ -4,15 +4,9 @@ namespace TicTacToe.Domain.Interface;
 
 public interface IGameService
 {
-    Game CreateGame(Guid userId);
+    Game CreateGame(Guid userId, bool againstBot);
     Game GetGame(Guid userId, Guid gameId);
-    
-    
     Game MakeMove(Guid userId, Guid gameId, Game incoming);
-    
-    Game GetBestMove(Game game);
-    
-    bool ValidateGame(Game game, Game lastState);
-    
-    GameStatus CheckForWinner(Game game);
+    IEnumerable<Game> GetAvailableGames(Guid userId);
+    Game JoinGame(Guid currentUserId, Guid gameId);
 }

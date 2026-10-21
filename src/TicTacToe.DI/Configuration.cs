@@ -14,6 +14,13 @@ public static class Configuration
         this IServiceCollection services,
         IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("Postgres");
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            throw new InvalidOperationException(
+                "СТРОКА ПОДКЛЮЧЕНИЯ НЕ НАЙДЕНА!");
+        }
+        
         services.AddDbContext<AppDbContext>(opt =>
             opt.UseNpgsql(configuration.GetConnectionString("Postgres")));
 

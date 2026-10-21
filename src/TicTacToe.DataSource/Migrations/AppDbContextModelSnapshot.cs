@@ -31,20 +31,37 @@ namespace TicTacToe.Migrations
 
                     b.Property<string>("BoardJson")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
                         .HasColumnName("board");
+
+                    b.Property<Guid?>("CurrentPlayerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("currentPlayerId");
 
                     b.Property<Guid>("Player1Id")
                         .HasColumnType("uuid")
                         .HasColumnName("player1");
 
+                    b.Property<int>("Player1Symbol")
+                        .HasColumnType("integer")
+                        .HasColumnName("player1Symbol");
+
                     b.Property<Guid?>("Player2Id")
                         .HasColumnType("uuid")
                         .HasColumnName("player2");
 
+                    b.Property<int>("Player2Symbol")
+                        .HasColumnType("integer")
+                        .HasColumnName("player2Symbol");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer")
                         .HasColumnName("status");
+
+                    b.Property<Guid?>("WinnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("winnerId");
 
                     b.HasKey("GameId");
 

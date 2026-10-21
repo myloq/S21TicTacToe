@@ -1,4 +1,4 @@
-﻿namespace TicTacToe.Web.Model;
+﻿namespace TicTacToe.Domain.Model;
 
 public class SignUpRequest
 {

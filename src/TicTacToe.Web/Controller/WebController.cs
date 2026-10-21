@@ -10,14 +10,29 @@ namespace TicTacToe.Web.Controller;
 [ApiController]
 [Route("game")]
 [Authorize]
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class WebController(IGameService gameService) : ControllerBase
 {
-    private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
+    private Guid CurrentUserId => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
     
     [HttpPost]
-    public IActionResult NewGame()
+    public IActionResult NewGame([FromBody] CreateGameRequest request)
     {
-        return Ok(GameWebMapper.ToWeb(gameService.CreateGame(CurrentUserId)));
+        bool againstBot = request.OpponentType == "bot";
+        return Ok(GameWebMapper.ToWeb(gameService.CreateGame(CurrentUserId, againstBot)));
+    }
+    
+    [HttpGet("available")]
+    public IActionResult GetAvailableGames()
+    {
+        return Ok(gameService.GetAvailableGames(CurrentUserId).Select(GameWebMapper.ToWeb));
+    }
+    
+    [HttpPost("{id:guid}/join")]
+    public IActionResult JoinGame(Guid id)
+    {
+        var game = gameService.JoinGame(CurrentUserId, id);
+        return Ok(GameWebMapper.ToWeb(game));
     }
     
     [HttpGet("{id:guid}")]

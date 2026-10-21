@@ -2,39 +2,44 @@
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
-    <title>T04</title>
+    <title>T04 - Игра</title>
     <style>
         body { font-family: system-ui, sans-serif; display: flex; flex-direction: column;
-            align-items: center; gap: 1rem; padding: 2rem; }
+            align-items: center; gap: 1rem; padding: 2rem; background: #fafafa; }
         #board { display: grid; grid-template-columns: repeat(3, 100px);
             grid-template-rows: repeat(3, 100px); gap: 4px; }
         .cell { display: flex; align-items: center; justify-content: center;
-            font-size: 3rem; background: #f0f0f0; cursor: pointer;
-            border: none; border-radius: 8px; user-select: none; }
+            font-size: 3rem; background: #fff; cursor: pointer; border: 1px solid #ddd;
+            border-radius: 8px; user-select: none; transition: background 0.2s; }
+        .cell:hover:not(:disabled) { background: #f0f0f0; }
         .cell:disabled { cursor: default; }
         .cell.cross { color: #d32f2f; }
         .cell.zero  { color: #1976d2; }
-        #status { font-size: 1.2rem; min-height: 1.5rem; }
-        .row { display: flex; gap: .5rem; align-items: center; }
-        #gameId { width: 22rem; padding: .4rem .6rem; font-family: monospace; }
-        button { padding: .5rem 1rem; font-size: 1rem; cursor: pointer; }
+        #status { font-size: 1.2rem; min-height: 1.5rem; font-weight: bold; margin: 1rem 0; }
+        .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; justify-content: center;}
+        #gameId { width: 20rem; padding: .4rem .6rem; font-family: monospace; }
+        button { padding: .5rem 1rem; font-size: 1rem; cursor: pointer; border-radius: 6px;
+            border: 1px solid #ccc; background: #fff; transition: 0.2s; }
+        button:hover:not(:disabled) { background: #eee; }
         button:disabled { cursor: not-allowed; opacity: .5; }
         .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem 1.5rem;
             display: flex; flex-direction: column; gap: .75rem; align-items: stretch;
-            min-width: 22rem; }
+            min-width: 22rem; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .card h2 { margin: 0 0 .25rem 0; font-size: 1.1rem; text-align: center; }
-        input { padding: .5rem .6rem; font-size: 1rem; border: 1px solid #ccc;
-            border-radius: 6px; }
+        input { padding: .5rem .6rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 6px; }
         .muted { color: #666; font-size: .9rem; }
         .error { color: #c62828; font-size: .9rem; min-height: 1.2rem; }
         .hidden { display: none !important; }
-        #userBar { display: flex; gap: 1rem; align-items: center; }
+        #userBar { display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem; }
+        .game-list { display: flex; flex-direction: column; gap: .5rem; margin-top: .5rem; }
+        .game-item { display: flex; justify-content: space-between; align-items: center;
+            border: 1px solid #eee; padding: .5rem; border-radius: 4px; }
     </style>
 </head>
 <body>
 <h1>Крестики-Нолики</h1>
 
-<!-- ─── Форма входа / регистрации ──────────────────────────────────── -->
+<!-- Форма входа -->
 <section id="authBlock" class="card">
     <h2>Вход</h2>
     <input id="loginInput" type="text" placeholder="Логин" autocomplete="username" />
@@ -44,28 +49,36 @@
         <button id="registerBtn">Зарегистрироваться</button>
     </div>
     <div id="authError" class="error"></div>
-    <div class="muted">Basic Auth: пара логин/пароль уходит в заголовке `Authorization`.</div>
 </section>
 
-<!-- ─── Игровой интерфейс ─────────────────────────────────────────── -->
+<!-- Игровой интерфейс -->
 <section id="gameBlock" class="hidden">
     <div id="userBar">
         <span>Вы вошли как <b id="currentUser"></b></span>
         <button id="logoutBtn">Выйти</button>
     </div>
 
+    <div class="row" style="margin-bottom: 1rem;">
+        <button id="newBotGame">Играть с ботом</button>
+        <button id="newHumanGame">Создать игру для двоих</button>
+        <button id="refreshAvailable">Доступные игры</button>
+    </div>
+
+    <!-- Блок со списком доступных игр -->
+    <div id="availableGamesBlock" class="card hidden" style="min-width: 400px; margin-bottom: 1rem;">
+        <h2>Доступные игры</h2>
+        <div id="availableGamesList" class="game-list"></div>
+    </div>
+
+    <!-- Блок управления текущей игрой -->
     <div class="row">
         <label for="gameId">ID игры:</label>
         <input id="gameId" type="text" spellcheck="false" placeholder="UUID" />
         <button id="load">Загрузить</button>
-    </div>
-
-    <div class="row">
-        <button id="new">Новая игра</button>
         <button id="copy" title="Скопировать ID">Копировать ID</button>
     </div>
 
-    <div id="status">Нажмите «Новая игра»</div>
+    <div id="status">Выберите действие</div>
     <div id="board"></div>
 </section>
 
@@ -73,11 +86,11 @@
     // ─── Состояние ────────────────────────────────────────────────
     const CROSS = 1, ZERO = 2;
     let game = null, busy = false;
-    let humanSide = CROSS;
-    let authToken = null;   // base64(login:password) — то, что уходит в Authorization
-    let currentLogin = null;
+    let authToken = null;
+    let currentLogin = null, currentUserId = null;
+    let pollTimer = null; // Таймер автообновления
 
-    // ─── Элементы ─────────────────────────────────────────────────
+    // ─── Элементы DOM ─────────────────────────────────────────────
     const boardEl        = document.getElementById('board');
     const statusEl       = document.getElementById('status');
     const idEl           = document.getElementById('gameId');
@@ -87,284 +100,265 @@
     const passwordInput  = document.getElementById('passwordInput');
     const authError      = document.getElementById('authError');
     const currentUserEl  = document.getElementById('currentUser');
+    const availableGamesBlock = document.getElementById('availableGamesBlock');
+    const availableGamesList  = document.getElementById('availableGamesList');
 
-    // ─── Утилиты ──────────────────────────────────────────────────
-    // Basic-заголовок = base64(login:password). Учтём Unicode.
+    // ─── Утилиты авторизации ──────────────────────────────────────
     function makeBasicToken(login, password) {
         const bytes = new TextEncoder().encode(`${login}:${password}`);
-        let bin = '';
-        for (const b of bytes) bin += String.fromCharCode(b);
+        let bin = ''; for (const b of bytes) bin += String.fromCharCode(b);
         return btoa(bin);
     }
 
     function authHeaders(extra = {}) {
-        return authToken
-            ? { ...extra, 'Authorization': 'Basic ' + authToken }
-            : { ...extra };
+        return authToken ? { ...extra, 'Authorization': 'Basic ' + authToken } : { ...extra };
     }
 
-    function saveSession(token, login) {
-        authToken = token;
-        currentLogin = login;
+    function saveSession(token, login, userId) {
+        authToken = token; currentLogin = login; currentUserId = userId;
         sessionStorage.setItem('basicToken', token);
         sessionStorage.setItem('login', login);
+        sessionStorage.setItem('userId', userId);
     }
 
     function clearSession() {
-        authToken = null;
-        currentLogin = null;
-        game = null;
-        sessionStorage.removeItem('basicToken');
-        sessionStorage.removeItem('login');
+        stopPolling();
+        authToken = null; currentLogin = null; currentUserId = null; game = null;
+        sessionStorage.clear();
     }
 
-    function showAuth() {
-        gameBlock.classList.add('hidden');
-        authBlock.classList.remove('hidden');
-        currentUserEl.textContent = '';
-    }
+    function showAuth() { gameBlock.classList.add('hidden'); authBlock.classList.remove('hidden'); }
+    function showGame() { authBlock.classList.add('hidden'); gameBlock.classList.remove('hidden'); currentUserEl.textContent = currentLogin; }
+    function handleUnauthorized() { clearSession(); showAuth(); authError.textContent = 'Сессия истекла. Войдите снова.'; }
 
-    function showGame() {
-        authBlock.classList.add('hidden');
-        gameBlock.classList.remove('hidden');
-        currentUserEl.textContent = currentLogin ?? '';
-    }
-
-    // Если сервер вернул 401 — сессия недействительна, показываем форму заново.
-    function handleUnauthorized() {
-        clearSession();
-        showAuth();
-        authError.textContent = 'Сессия истекла. Войдите снова.';
-    }
-
-    // Восстанавливаем сессию после перезагрузки страницы (F5).
+    // Восстановление сессии после F5
     (function restoreSession() {
         const t = sessionStorage.getItem('basicToken');
         const l = sessionStorage.getItem('login');
-        if (t && l) {
-            authToken = t;
-            currentLogin = l;
-            showGame();
-        } else {
-            showAuth();
-        }
+        const u = sessionStorage.getItem('userId');
+        if (t && l && u) { saveSession(t, l, u); showGame(); } else { showAuth(); }
     })();
 
-    // ─── Кнопки входа / регистрации / выхода ──────────────────────
+    // ─── Автообновление (Polling) ─────────────────────────────────
+    function startPolling(gameId) {
+        stopPolling(); // Сбрасываем старый таймер
+
+        pollTimer = setInterval(async () => {
+            if (!game || game.id !== gameId || busy) return;
+            if (game.status === 'Win' || game.status === 'Draw') { stopPolling(); return; }
+
+            try {
+                const res = await fetch(`/game/${gameId}`, { headers: authHeaders(), cache: 'no-store' });
+                if (res.ok) {
+                    const freshGame = await res.json();
+
+                    // Если состояние на сервере изменилось, перерисовываем
+                    if (JSON.stringify(freshGame) !== JSON.stringify(game)) {
+                        game = freshGame;
+                        render();
+
+                        if (game.status === 'Win' || game.status === 'Draw') stopPolling();
+                    }
+                }
+            } catch (e) { console.error('Polling error:', e); }
+        }, 2000); // 2 секунды
+    }
+
+    function stopPolling() {
+        if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    }
+
+    // ─── Авторизация ──────────────────────────────────────────────
     document.getElementById('loginBtn').addEventListener('click', login);
     document.getElementById('registerBtn').addEventListener('click', register);
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-        clearSession();
-        showAuth();
-    });
-
-    // Enter в любом поле формы — логин.
-    [loginInput, passwordInput].forEach(el =>
-        el.addEventListener('keydown', e => {
-            if (e.key === 'Enter') { e.preventDefault(); login(); }
-        })
-    );
-    
-    function detectHumanSide() {
-        if (!game) return;
-        if (game.status === 'CrossTurn')      humanSide = CROSS;
-        else if (game.status === 'ZeroTurn')  humanSide = ZERO;
-        // CrossWin / ZeroWin / Draw — оставляем как было
-    }
+    document.getElementById('logoutBtn').addEventListener('click', () => { clearSession(); showAuth(); });
 
     async function register() {
         authError.textContent = '';
-        const login = loginInput.value.trim();
-        const password = passwordInput.value;
-
-        if (!login || !password) { authError.textContent = 'Введите логин и пароль'; return; }
+        const login = loginInput.value.trim(), password = passwordInput.value;
+        if (!login || !password) return;
 
         try {
             const res = await fetch('/auth/register', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ login, password })
             });
-
-            if (res.status === 409) { authError.textContent = 'Логин уже занят'; return; }
-            if (!res.ok) {
-                const p = await res.json().catch(() => null);
-                authError.textContent = p?.detail ?? `Ошибка регистрации: ${res.status}`;
-                return;
-            }
-
-            // Сразу логинимся тем же логином/паролем.
+            if (res.status === 409) { authError.textContent = 'Логин занят'; return; }
+            if (!res.ok) { authError.textContent = 'Ошибка регистрации'; return; }
             await login();
-        } catch (e) {
-            authError.textContent = 'Сеть недоступна';
-            console.error(e);
-        }
+        } catch (e) { authError.textContent = 'Сеть недоступна'; }
     }
 
     async function login() {
         authError.textContent = '';
-        const login = loginInput.value.trim();
-        const password = passwordInput.value;
-
-        if (!login || !password) { authError.textContent = 'Введите логин и пароль'; return; }
-
+        const login = loginInput.value.trim(), password = passwordInput.value;
+        if (!login || !password) return;
         const token = makeBasicToken(login, password);
 
         try {
             const res = await fetch('/auth/login', {
-                method: 'POST',
-                headers: { 'Authorization': 'Basic ' + token }
+                method: 'POST', headers: { 'Authorization': 'Basic ' + token }
             });
-
             if (res.status === 401) { authError.textContent = 'Неверный логин или пароль'; return; }
-            if (!res.ok) {
-                const p = await res.json().catch(() => null);
-                authError.textContent = p?.detail ?? `Ошибка входа: ${res.status}`;
-                return;
-            }
+            if (!res.ok) { authError.textContent = 'Ошибка входа'; return; }
 
-            saveSession(token, login);
+            const data = await res.json();
+            saveSession(token, login, data.userId);
             passwordInput.value = '';
             showGame();
-            statusEl.textContent = 'Нажмите «Новая игра»';
-        } catch (e) {
-            authError.textContent = 'Сеть недоступна';
-            console.error(e);
-        }
+        } catch (e) { authError.textContent = 'Сеть недоступна'; }
     }
 
     // ─── Игровые действия ─────────────────────────────────────────
-
-    document.getElementById('new').addEventListener('click', newGame);
+    document.getElementById('newBotGame').addEventListener('click', () => createGame('bot'));
+    document.getElementById('newHumanGame').addEventListener('click', () => createGame('human'));
+    document.getElementById('refreshAvailable').addEventListener('click', loadAvailableGames);
     document.getElementById('load').addEventListener('click', loadGame);
     document.getElementById('copy').addEventListener('click', () => {
-        if (!idEl.value) return;
-        navigator.clipboard.writeText(idEl.value)
-            .then(() => statusEl.textContent = 'ID скопирован')
-            .catch(() => statusEl.textContent = 'Не удалось скопировать');
+        if (idEl.value) navigator.clipboard.writeText(idEl.value).then(() => statusEl.textContent = 'ID скопирован');
     });
 
-    idEl.addEventListener('keydown', e => {
-        if (e.key === 'Enter') { e.preventDefault(); loadGame(); }
-    });
-
-    async function newGame() {
-        if (!authToken) { handleUnauthorized(); return; }
-
+    async function createGame(type) {
+        stopPolling();
         try {
             const res = await fetch('/game', {
-                method: 'POST',
-                headers: authHeaders()
+                method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ opponentType: type })
             });
-
-            if (res.status === 401) { handleUnauthorized(); return; }
-            if (!res.ok) { statusEl.textContent = `Ошибка: ${res.status}`; return; }
+            if (res.status === 401) return handleUnauthorized();
+            if (!res.ok) { statusEl.textContent = 'Ошибка создания игры'; return; }
 
             game = await res.json();
-            detectHumanSide();
+            availableGamesBlock.classList.add('hidden');
             render();
-        } catch (e) {
-            statusEl.textContent = 'Сеть недоступна';
-            console.error(e);
-        }
+            startPolling(game.id);
+        } catch (e) { statusEl.textContent = 'Сеть недоступна'; }
+    }
+
+    async function loadAvailableGames() {
+        try {
+            const res = await fetch('/game/available', { headers: authHeaders() });
+            if (res.status === 401) return handleUnauthorized();
+
+            const games = await res.json();
+            availableGamesList.innerHTML = '';
+
+            if (games.length === 0) {
+                availableGamesList.innerHTML = '<div class="muted">Нет доступных игр. Создайте свою!</div>';
+            } else {
+                games.forEach(g => {
+                    const div = document.createElement('div');
+                    div.className = 'game-item';
+                    div.innerHTML = `<span>ID: ${g.id.substring(0,8)}...</span>`;
+                    const btn = document.createElement('button');
+                    btn.textContent = 'Присоединиться';
+                    btn.onclick = () => joinGame(g.id);
+                    div.appendChild(btn);
+                    availableGamesList.appendChild(div);
+                });
+            }
+            availableGamesBlock.classList.remove('hidden');
+        } catch (e) { console.error(e); }
+    }
+
+    async function joinGame(id) {
+        stopPolling();
+        try {
+            const res = await fetch(`/game/${id}/join`, { method: 'POST', headers: authHeaders() });
+            if (res.status === 401) return handleUnauthorized();
+            if (!res.ok) { statusEl.textContent = 'Не удалось присоединиться'; return; }
+
+            game = await res.json();
+            availableGamesBlock.classList.add('hidden');
+            render();
+            startPolling(game.id);
+        } catch (e) { statusEl.textContent = 'Сеть недоступна'; }
     }
 
     async function loadGame() {
-        if (!authToken) { handleUnauthorized(); return; }
-
         const id = idEl.value.trim();
-        if (!id) { statusEl.textContent = 'Введите ID'; return; }
+        if (!id) return;
+        stopPolling();
 
         try {
-            const res = await fetch(`/game/${id}`, {
-                method: 'GET',
-                headers: authHeaders()
-            });
-
-            if (res.status === 401) { handleUnauthorized(); return; }
-            if (!res.ok) {
-                const p = await res.json().catch(() => null);
-                statusEl.textContent = p?.detail ?? `Игра не найдена (${res.status})`;
-                return;
-            }
+            const res = await fetch(`/game/${id}`, { headers: authHeaders() });
+            if (res.status === 401) return handleUnauthorized();
+            if (!res.ok) { statusEl.textContent = 'Игра не найдена'; return; }
 
             game = await res.json();
-            detectHumanSide();
+            availableGamesBlock.classList.add('hidden');
             render();
-        } catch (e) {
-            statusEl.textContent = 'Сеть недоступна';
-            console.error(e);
-        }
+            startPolling(game.id);
+        } catch (e) { statusEl.textContent = 'Сеть недоступна'; }
     }
 
     async function makeMove(row, col) {
-        if (busy || !game) return;
-        if (game.status !== 'CrossTurn' && game.status !== 'ZeroTurn') return;
-        if (game.board[row][col] !== 0) return;
-        if (!authToken) { handleUnauthorized(); return; }
+        if (busy || !game || game.board[row][col] !== 0) return;
+        if (game.currentPlayerId !== currentUserId) return;
+
+        // Определяем, каким символом играет текущий пользователь
+        const mySymbol = game.player1Id === currentUserId ? game.player1Symbol : game.player2Symbol;
 
         const newBoard = game.board.map(r => [...r]);
-        newBoard[row][col] = humanSide;
+        newBoard[row][col] = mySymbol;
 
         busy = true;
         try {
             const res = await fetch(`/game/${game.id}`, {
-                method: 'POST',
-                headers: authHeaders({ 'Content-Type': 'application/json' }),
-                body: JSON.stringify({
-                    id: game.id,
-                    board: newBoard,
-                    status: game.status
-                })
+                method: 'POST', headers: authHeaders({ 'Content-Type': 'application/json' }),
+                body: JSON.stringify({ id: game.id, board: newBoard, status: game.status })
             });
+            if (res.status === 401) return handleUnauthorized();
 
-            if (res.status === 401) { handleUnauthorized(); return; }
             if (!res.ok) {
-                const problem = await res.json().catch(() => null);
-                statusEl.textContent = problem?.detail ?? `Ошибка: ${res.status}`;
+                const p = await res.json().catch(() => null);
+                statusEl.textContent = p?.detail ?? `Ошибка: ${res.status}`;
+                // Если ошибка, подгружаем актуальное состояние с сервера
+                const refresh = await fetch(`/game/${game.id}`, { headers: authHeaders() });
+                if(refresh.ok) { game = await refresh.json(); render(); }
                 return;
             }
 
             game = await res.json();
-            detectHumanSide();
             render();
-        } catch (e) {
-            statusEl.textContent = 'Сеть недоступна';
-            console.error(e);
-        } finally {
-            busy = false;
-        }
+        } catch (e) { statusEl.textContent = 'Сеть недоступна'; }
+        finally { busy = false; }
     }
 
     function render() {
+        if (!game) return;
         idEl.value = game.id;
 
-        const isHumanTurn =
-            (game.status === 'CrossTurn' && humanSide === CROSS) ||
-            (game.status === 'ZeroTurn'  && humanSide === ZERO);
+        const isMyTurn = game.currentPlayerId === currentUserId;
+        const isGameOver = game.status !== 'InProgress';
 
         boardEl.innerHTML = '';
         for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) {
             const btn = document.createElement('button');
             btn.className = 'cell';
             const v = game.board[i][j];
+
             if (v === CROSS) { btn.textContent = '×'; btn.classList.add('cross'); }
             else if (v === ZERO) { btn.textContent = '○'; btn.classList.add('zero'); }
-            btn.disabled = v !== 0 || !isHumanTurn;
+
+            btn.disabled = v !== 0 || !isMyTurn || isGameOver;
             btn.addEventListener('click', () => makeMove(i, j));
             boardEl.appendChild(btn);
         }
-        statusEl.textContent = statusText(game.status);
-    }
-    
-    function statusText(s) {
-        switch (s) {
-            case 'CrossTurn': return 'Ход крестиков (×)';
-            case 'ZeroTurn':  return 'Ход ноликов (○)';
-            case 'CrossWin':  return 'Победили крестики (×)';
-            case 'ZeroWin':   return 'Победили нолики (○)';
-            case 'Draw':      return 'Ничья.';
-            default:          return s;
+
+        // Логика отображения статуса
+        if (game.status === 'WaitingForPlayers') {
+            statusEl.textContent = 'Ожидание второго игрока...';
+            statusEl.style.color = '#1976d2';
+        } else if (game.status === 'Win') {
+            statusEl.textContent = game.winnerId === currentUserId ? 'Вы победили! 🎉' : 'Вы проиграли.';
+            statusEl.style.color = game.winnerId === currentUserId ? '#2e7d32' : '#c62828';
+        } else if (game.status === 'Draw') {
+            statusEl.textContent = 'Ничья.';
+            statusEl.style.color = '#666';
+        } else {
+            statusEl.textContent = isMyTurn ? 'Ваш ход' : 'Ход соперника...';
+            statusEl.style.color = isMyTurn ? '#2e7d32' : '#666';
         }
     }
 </script>

@@ -4,9 +4,9 @@ namespace TicTacToe.Domain.Interface;
 
 public interface IUserService
 {
-    bool Register(string login, string password);
+    bool Register(SignUpRequest signUpRequest);
 
-    Guid? Authenticate(string login, string password);
+    Guid? Authenticate(SignUpRequest signUpRequest);
 
     User? GetById(Guid id);
 }

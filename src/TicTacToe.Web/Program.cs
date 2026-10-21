@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TicTacToe.DI;
+using TicTacToe.Web.Authenticator;
 using TicTacToe.Web.ExceptionHandling;
 using TicTacToe.Web.Controller;
 
@@ -15,7 +16,7 @@ builder.Services.ConfigureServices(builder.Configuration);
 builder.Services.AddOpenApi();
 
 builder.Services.AddAuthentication("Basic")
-    .AddScheme<AuthenticationSchemeOptions, UserController>("Basic", null);
+    .AddScheme<AuthenticationSchemeOptions, UserAuthenticator>("Basic", null);
 
 var app = builder.Build();
 

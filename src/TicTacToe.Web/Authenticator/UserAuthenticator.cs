@@ -2,19 +2,19 @@
 using System.Text;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TicTacToe.Domain.Interface;
+using TicTacToe.Domain.Model;
 
-namespace TicTacToe.Web.Controller;
+namespace TicTacToe.Web.Authenticator;
 
-public class UserController : AuthenticationHandler<AuthenticationSchemeOptions>
+public class UserAuthenticator : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     public const string SchemeName = "Basic";
 
     private readonly IUserService _userService;
 
-    public UserController(
+    public UserAuthenticator(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
         ILoggerFactory logger,
         UrlEncoder encoder,
@@ -26,19 +26,15 @@ public class UserController : AuthenticationHandler<AuthenticationSchemeOptions>
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        // ─── 1. Читаем заголовок Authorization ────────────────────────────
         var header = Request.Headers.Authorization.ToString();
 
-        // Если заголовка нет — это не наша проблема, пусть решает кто-то другой
         if (string.IsNullOrEmpty(header))
             return Task.FromResult(AuthenticateResult.NoResult());
 
-        // Если это не Basic — тоже не наша схема
         if (!header.StartsWith("Basic ", StringComparison.OrdinalIgnoreCase))
             return Task.FromResult(AuthenticateResult.NoResult());
 
-        // ─── 2. Декодируем base64 ─────────────────────────────────────────
-        var base64 = header["Basic ".Length..]; // всё после "Basic "
+        var base64 = header["Basic ".Length..]; 
 
         byte[] bytes;
         try
@@ -47,13 +43,11 @@ public class UserController : AuthenticationHandler<AuthenticationSchemeOptions>
         }
         catch (FormatException)
         {
-            // Клиент прислал мусор вместо base64 — это 401, а не 500
             return Task.FromResult(AuthenticateResult.Fail("Invalid base64 in Authorization header"));
         }
 
-        var decoded = Encoding.UTF8.GetString(bytes); // "login:password"
+        var decoded = Encoding.UTF8.GetString(bytes);
 
-        // ─── 3. Разделяем по первому ':' ──────────────────────────────────
         var separator = decoded.IndexOf(':');
         if (separator < 0)
             return Task.FromResult(AuthenticateResult.Fail("Invalid credentials format"));
@@ -61,12 +55,10 @@ public class UserController : AuthenticationHandler<AuthenticationSchemeOptions>
         var login = decoded[..separator];
         var password = decoded[(separator + 1)..];
 
-        // ─── 4. Проверяем через UserService ───────────────────────────────
-        var userId = _userService.Authenticate(login, password);
+        var userId = _userService.Authenticate(new SignUpRequest {Login = login, Password = password});
         if (userId is null)
             return Task.FromResult(AuthenticateResult.Fail("Invalid login or password"));
 
-        // ─── 5. Строим "паспорт" пользователя ─────────────────────────────
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, userId.Value.ToString())

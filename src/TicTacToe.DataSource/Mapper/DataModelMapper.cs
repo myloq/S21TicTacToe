@@ -10,10 +10,15 @@ public static class DataModelMapper
         GameId = game.Id,
         Player1Id = game.Player1Id,
         Player2Id = game.Player2Id,
+        CurrentPlayerId = game.CurrentPlayerId,
+        WinnerId = game.WinnerId,
+        Player1Symbol = game.Player1Symbol,
+        Player2Symbol = game.Player2Symbol,
         Board = (int[,])game.Field.Board.Clone(),
         Status = (int)game.Status
     };
 
     public static Game ToGame(GameModel model) =>
-        new(model.GameId, model.Player1Id, model.Player2Id, new GameField(model.Board), (GameStatus)model.Status);
+        new(model.GameId, model.Player1Id, model.Player2Id, new GameField(model.Board), (GameStatus)model.Status,
+            model.CurrentPlayerId, model.WinnerId, model.Player1Symbol, model.Player2Symbol);
 }

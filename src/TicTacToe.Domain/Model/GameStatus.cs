@@ -2,19 +2,8 @@
 
 public enum GameStatus
 {
-    InGame,
-    CrossTurn,
-    ZeroTurn,
-    CrossWin,
-    ZeroWin,
+    InProgress,
+    WaitingForPlayers,
+    Win,
     Draw
-}
-
-public class GameStatusExtension
-{
-    public GameStatus GetOpponentStatus(GameStatus status)
-    {
-        if (status != GameStatus.CrossTurn && status != GameStatus.ZeroTurn) return status;
-        return status == GameStatus.CrossTurn ? GameStatus.ZeroTurn : GameStatus.CrossTurn;
-    }
 }

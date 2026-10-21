@@ -7,15 +7,14 @@ namespace TicTacToe.Datasource.Model;
 public class GameModel
 {
     [Key] [Column("id")] public Guid GameId { get; init; }
-    
-    [Column("player1")] public Guid Player1Id { get; set; }
-    
+    [Column("player1")] public Guid Player1Id { get; init; }
     [Column("player2")] public Guid? Player2Id { get; set; }
-
-    [Required] [Column("board")] public string BoardJson { get; set; } = "[[0,0,0],[0,0,0],[0,0,0]]";
-
+    [Column("currentPlayerId")] public Guid? CurrentPlayerId { get; set; }
+    [Column("winnerId")] public Guid? WinnerId { get; set; }
+    [Column("player1Symbol")] public int Player1Symbol { get; set; }
+    [Column("player2Symbol")] public int Player2Symbol { get; set; }
+    [Required] [Column("board")] [MaxLength(64)] public string BoardJson { get; set; } = "[[0,0,0],[0,0,0],[0,0,0]]";
     [Column("status")] public int Status { get; set; }
-
     [NotMapped]
     public int[,] Board
     {

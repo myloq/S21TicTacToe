@@ -16,6 +16,8 @@ public sealed class DomainExceptionHandler(ILogger<DomainExceptionHandler> logge
             GameNotFoundException => (StatusCodes.Status404NotFound, "Game Not Found"),
             GameValidationException => (StatusCodes.Status400BadRequest, "Invalid game state"),
             InvalidMoveException => (StatusCodes.Status400BadRequest, "Invalid move"),
+            UserAlreadyExistsException => (StatusCodes.Status409Conflict, "Conflict"),
+            UnauthorizedException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
             _ => (0, null as string)
         };
 
@@ -26,7 +28,7 @@ public sealed class DomainExceptionHandler(ILogger<DomainExceptionHandler> logge
         }
 
         if (status >= 400 && status < 500)
-            logger.LogWarning(exception, "Client error: {Title}", title);
+            logger.LogWarning("Client error: {Title}", title);
         
         httpContext.Response.StatusCode = status;
         await httpContext.Response.WriteAsJsonAsync(new ProblemDetails()
