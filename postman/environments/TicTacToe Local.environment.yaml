@@ -1,0 +1,18 @@
+name: TicTacToe Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:5290'
+  - key: password
+    value: '123'
+  - key: username
+    value: ''
+  - key: userId
+    value: ''
+  - key: player2_username
+    value: ''
+  - key: player2_userId
+    value: ''
+  - key: gameId
+    value: ''
+  - key: botGameId
+    value: ''

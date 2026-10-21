@@ -1,0 +1,15 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/register"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "login": "{{username}}",
+        "password": "{{password}}"
+    }
+scripts:
+  - type: afterResponse
+    code: pm.test("Status 409 Conflict", () => pm.response.to.have.status(409));
+    language: text/javascript
+order: 1000

@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{baseUrl}}/game/{{gameId}}/join"
+method: POST
+auth:
+  type: basic
+  credentials:
+    username: "{{player2_username}}"
+    password: "{{password}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status 200", () => pm.response.to.have.status(200));
+      const res = pm.response.json();
+      pm.test("Game is InProgress", () => pm.expect(res.status).to.eql('InProgress'));
+      pm.test("Player2 is set", () => pm.expect(res.player2Id).to.eql(pm.environment.get('player2_userId')));
+    language: text/javascript
+order: 3000

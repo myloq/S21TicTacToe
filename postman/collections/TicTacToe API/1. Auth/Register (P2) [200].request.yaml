@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/register"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "login": "{{player2_username}}",
+        "password": "{{password}}"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      const rand = Math.floor(Math.random() * 100000);
+      pm.environment.set("player2_username", `player2_${rand}`);
+    language: text/javascript
+  - type: afterResponse
+    code: pm.test("Status 200", () => pm.response.to.have.status(200));
+    language: text/javascript
+order: 3000
