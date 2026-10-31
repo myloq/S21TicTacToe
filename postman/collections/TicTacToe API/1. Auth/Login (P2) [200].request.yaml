@@ -1,16 +1,22 @@
 $kind: http-request
 url: "{{baseUrl}}/auth/login"
 method: POST
-auth:
-  type: basic
-  credentials:
-    username: "{{player2_username}}"
-    password: "{{password}}"
+body:
+  type: json
+  content: |-
+    {
+        "login": "{{player2_username}}",
+        "password": "{{password}}"
+    }
 scripts:
   - type: afterResponse
     code: |-
-      pm.test("Status 200", () => pm.response.to.have.status(200));
       const res = pm.response.json();
-      if (res.userId) pm.environment.set("player2_userId", res.userId);
+      if (res.accessToken) {
+          pm.environment.set("player2_accessToken", res.accessToken);
+          const payload = JSON.parse(atob(res.accessToken.split('.')[1]));
+          const uid = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+          pm.environment.set("player2_userId", uid);
+      }
     language: text/javascript
-order: 4000
+order: 6000

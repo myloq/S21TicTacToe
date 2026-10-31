@@ -14,10 +14,9 @@ body:
         "status": "InProgress"
     }
 auth:
-  type: basic
+  type: bearer
   credentials:
-    username: "{{username}}"
-    password: "{{password}}"
+    token: "{{accessToken}}"
 scripts:
   - type: afterResponse
     code: pm.test("Status 400 Bad Request", () => pm.response.to.have.status(400));

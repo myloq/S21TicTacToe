@@ -8,10 +8,9 @@ body:
         "opponentType": "human"
     }
 auth:
-  type: basic
+  type: bearer
   credentials:
-    username: "{{username}}"
-    password: "{{password}}"
+    token: "{{accessToken}}"
 scripts:
   - type: afterResponse
     code: |-

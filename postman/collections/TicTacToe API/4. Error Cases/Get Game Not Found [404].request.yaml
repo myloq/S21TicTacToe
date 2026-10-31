@@ -2,10 +2,9 @@ $kind: http-request
 url: "{{baseUrl}}/game/00000000-0000-0000-0000-000000000000"
 method: GET
 auth:
-  type: basic
+  type: bearer
   credentials:
-    username: "{{username}}"
-    password: "{{password}}"
+    token: "{{accessToken}}"
 scripts:
   - type: afterResponse
     code: pm.test("Status 404 Not Found", () => pm.response.to.have.status(404));

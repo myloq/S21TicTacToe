@@ -10,33 +10,25 @@ body:
         "status": "InProgress"
     }
 auth:
-  type: basic
+  type: bearer
   credentials:
-    username: "{{username}}"
-    password: "{{password}}"
+    token: "{{accessToken}}"
 scripts:
   - type: beforeRequest
     code: |-
       const baseUrl = pm.environment.get('baseUrl');
       const gameId = pm.environment.get('botGameId');
-      const u = pm.environment.get('username');
-      const p = pm.environment.get('password');
-      const token = btoa(`${u}:${p}`);
-
-      pm.sendRequest({ url: `${baseUrl}/game/${gameId}`, method: 'GET', header: { 'Authorization': `Basic ${token}` } }, (err, res) => {
+      const token = pm.environment.get('accessToken');
+      pm.sendRequest({ url: `${baseUrl}/game/${gameId}`, method: 'GET', header: { 'Authorization': `Bearer ${token}` } }, (err, res) => {
           const g = res.json();
-          if(g.status !== 'InProgress') { console.log('Game over'); return; }
-          if(g.currentPlayerId !== pm.environment.get('userId')) { console.log('Not our turn'); return; }
+          if(g.status !== 'InProgress' || g.currentPlayerId !== pm.environment.get('userId')) return;
           let mySymbol = g.player1Id === pm.environment.get('userId') ? g.player1Symbol : g.player2Symbol;
           let board = g.board; let found = false;
-          for(let i=0; i<3; i++) { for(let j=0; j<3; j++) { if(board[i][j] === 0 && !found) { board[i][j] = mySymbol; found = true; } } }
+          for(let i=0; i<3; i++) for(let j=0; j<3; j++) { if(board[i][j] === 0 && !found) { board[i][j] = mySymbol; found = true; } }
           pm.variables.set('newBoard', JSON.stringify(board));
       });
     language: text/javascript
   - type: afterResponse
-    code: |-
-      pm.test("Status 200 (or 400 if game over)", () => {
-          pm.expect([200, 400]).to.include(pm.response.code);
-      });
+    code: pm.test("Status 200 or 400", () => pm.expect([200, 400]).to.include(pm.response.code));
     language: text/javascript
 order: 3000

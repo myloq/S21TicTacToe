@@ -17,17 +17,20 @@ public static class Configuration
         var connectionString = configuration.GetConnectionString("Postgres");
         if (string.IsNullOrEmpty(connectionString))
         {
-            throw new InvalidOperationException(
-                "СТРОКА ПОДКЛЮЧЕНИЯ НЕ НАЙДЕНА!");
+            throw new InvalidOperationException("СТРОКА ПОДКЛЮЧЕНИЯ НЕ НАЙДЕНА!");
         }
-        
+
         services.AddDbContext<AppDbContext>(opt =>
-            opt.UseNpgsql(configuration.GetConnectionString("Postgres")));
+            opt.UseNpgsql(connectionString));
 
         services.AddScoped<IRepository, Repository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IGameService, GameService>();
+        
+        // Новая аутентификация 
+        services.AddScoped<IJwtProvider, JwtProvider>();
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }
