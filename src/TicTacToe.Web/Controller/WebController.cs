@@ -49,4 +49,11 @@ public class WebController(IGameService gameService) : ControllerBase
         var result = gameService.MakeMove(CurrentUserId, id, incoming);
         return Ok(GameWebMapper.ToWeb(result));
     }
+
+    [HttpGet("history")]
+    public IActionResult GetHistory()
+    {
+        var result = gameService.GetGameHistory(CurrentUserId).Select(GameWebMapper.ToWeb);
+        return Ok(result);
+    }
 }

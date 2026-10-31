@@ -41,4 +41,12 @@ public class Repository(AppDbContext db) : IRepository
             .AsEnumerable().Select(DataModelMapper.ToGame)
             .ToList();
     }
+
+    public IEnumerable<Game> GetCompletedGames(Guid userId)
+    {
+        return db.Games
+            .Where(g => (g.Player1Id == userId || g.Player2Id == userId) &&
+                        (g.Status == (int)GameStatus.Win || g.Status == (int)GameStatus.Draw))
+            .OrderByDescending(g => g.CreatedAt).AsEnumerable().Select(DataModelMapper.ToGame).ToList();
+    }
 }

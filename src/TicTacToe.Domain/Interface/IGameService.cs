@@ -9,4 +9,5 @@ public interface IGameService
     Game MakeMove(Guid userId, Guid gameId, Game incoming);
     IEnumerable<Game> GetAvailableGames(Guid userId);
     Game JoinGame(Guid currentUserId, Guid gameId);
+    IEnumerable<Game> GetGameHistory(Guid userId);
 }

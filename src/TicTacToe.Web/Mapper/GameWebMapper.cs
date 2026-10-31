@@ -22,7 +22,7 @@ public static class GameWebMapper
     public static Game ToDomain(GameWeb web)
     {
         var s = Enum.TryParse<GameStatus>(web.Status, out var status) ? status : GameStatus.InProgress;
-        return new Game(web.Id, Guid.Empty, null, new GameField(ToRectArray(web.Board)), s, null, null, 0, 0);
+        return new Game(web.Id, Guid.Empty, null, new GameField(ToRectArray(web.Board)), s, null, null, 0, 0, DateTime.Now);
     }
 
     private static int[][] ToJaggedArray(int[,] array)

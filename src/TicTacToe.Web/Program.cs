@@ -18,7 +18,8 @@ builder.Services.AddOpenApi();
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection("JwtSettings"));
 
-var jwtOptions = builder.Configuration.GetSection("JwtSettings").Get<JwtOptions>();
+var jwtOptions = builder.Configuration.GetSection("JwtSettings").Get<JwtOptions>() 
+                 ?? throw new InvalidOperationException("JwtSettings is missing");
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
 {

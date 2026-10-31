@@ -9,7 +9,8 @@ public class Game(
     Guid? currentPlayerId,
     Guid? winnerId,
     int player1Symbol,
-    int player2Symbol)
+    int player2Symbol,
+    DateTime createdAt)
 {
     public Guid Id { get; } = id;
     public Guid Player1Id { get; init; } = player1Id;
@@ -20,6 +21,7 @@ public class Game(
     public Guid? WinnerId { get; set; } = winnerId;
     public int Player1Symbol { get; set; } = player1Symbol;
     public int Player2Symbol { get; set; } = player2Symbol;
+    public DateTime CreatedAt { get; init; } = createdAt;
 
     public void ChangeStatus(GameStatus status)
     {

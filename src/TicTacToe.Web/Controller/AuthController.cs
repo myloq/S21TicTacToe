@@ -34,7 +34,7 @@ public class AuthController(IAuthService authService, IUserService userService) 
         var result = authService.UpdateAccessToken(request);
         return Ok(result);
     }
-    
+
     [AllowAnonymous]
     [HttpPost("refresh")]
     public IActionResult Refresh([FromBody] RefreshJwtRequest request)
@@ -42,13 +42,13 @@ public class AuthController(IAuthService authService, IUserService userService) 
         var result = authService.UpdateRefreshToken(request);
         return Ok(result);
     }
-    
+
     [Authorize]
     [HttpGet("users/{id:guid}")]
     public IActionResult GetUser(Guid id)
     {
         var user = userService.GetById(id);
-        if (user is null) return NotFound(new {message = "User not found"});
+        if (user is null) return NotFound(new { message = "User not found" });
         return Ok(new UserWeb { Id = user.Id, Login = user.Login });
     }
 
@@ -59,9 +59,9 @@ public class AuthController(IAuthService authService, IUserService userService) 
         var userIdString = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (userIdString is null) return Unauthorized();
         var userId = Guid.Parse(userIdString);
-        
-        var user=userService.GetById(userId);
-        if (user is null)  return NotFound(new {message = "User not found"});
+
+        var user = userService.GetById(userId);
+        if (user is null) return NotFound(new { message = "User not found" });
         return Ok(new UserWeb { Id = user.Id, Login = user.Login });
     }
 }

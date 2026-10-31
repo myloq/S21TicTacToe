@@ -13,7 +13,7 @@ public class GameService(IRepository repository) : IGameService
         int player2Symbol = player1Symbol == 1 ? 2 : 1;
         Guid? currentPlayerId = player1Symbol == 1 ? userId : null;
         Game game = new Game(Guid.NewGuid(), userId, null, new GameField(new int[3, 3]), GameStatus.WaitingForPlayers,
-            currentPlayerId, null, player1Symbol, player2Symbol);
+            currentPlayerId, null, player1Symbol, player2Symbol, DateTime.UtcNow);
 
         if (againstBot) // Игра с ботом
         {
@@ -103,7 +103,7 @@ public class GameService(IRepository repository) : IGameService
         if (bestRow == -1) return game;
 
         Game result = new Game(game.Id, game.Player1Id, game.Player2Id, new GameField(board),
-            game.Status, game.CurrentPlayerId, null, game.Player1Symbol, game.Player2Symbol);
+            game.Status, game.CurrentPlayerId, null, game.Player1Symbol, game.Player2Symbol, game.CreatedAt);
 
         result.Field.Board[bestRow, bestCol] = botSymbol;
         result.ChangeCurrentPlayerId();
@@ -217,5 +217,10 @@ public class GameService(IRepository repository) : IGameService
 
         repository.Save(game);
         return game;
+    }
+
+    public IEnumerable<Game> GetGameHistory(Guid userId)
+    {
+        return repository.GetCompletedGames(userId);
     }
 }

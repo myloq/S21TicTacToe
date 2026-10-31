@@ -35,6 +35,10 @@ namespace TicTacToe.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("board");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
                     b.Property<Guid?>("CurrentPlayerId")
                         .HasColumnType("uuid")
                         .HasColumnName("currentPlayerId");
