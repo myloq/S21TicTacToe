@@ -16,7 +16,8 @@ public static class GameWebMapper
         CurrentPlayerId = game.CurrentPlayerId,
         WinnerId = game.WinnerId,
         Player1Symbol = game.Player1Symbol,
-        Player2Symbol = game.Player2Symbol
+        Player2Symbol = game.Player2Symbol,
+        CreatedAt = game.CreatedAt
     };
 
     public static Game ToDomain(GameWeb web)

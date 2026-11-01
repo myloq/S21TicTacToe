@@ -113,21 +113,29 @@ async function login() {
 
 async function register() {
     authError.textContent = '';
-    const login = document.getElementById('loginInput').value.trim();
+
+    // Переименовали локальные переменные, чтобы не перекрывать функцию login()
+    const username = document.getElementById('loginInput').value.trim();
     const password = document.getElementById('passwordInput').value;
-    if (!login || !password) return;
+
+    if (!username || !password) return;
 
     try {
         const res = await fetch('/auth/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ login, password })
+            body: JSON.stringify({ login: username, password }) // Отправляем username
         });
 
         if (res.status === 409) { authError.textContent = 'Логин занят'; return; }
         if (!res.ok) { authError.textContent = 'Ошибка регистрации'; return; }
+
+        // Теперь login() вызовется без ошибок!
         await login();
-    } catch (e) { authError.textContent = 'Ошибка сети'; }
+    } catch (e) {
+        console.error("Реальная ошибка:", e); // Чтобы в будущем видеть такие баги в консоли
+        authError.textContent = 'Сеть недоступна';
+    }
 }
 
 // ─── Вкладки ──────────────────────────────────────────────────
