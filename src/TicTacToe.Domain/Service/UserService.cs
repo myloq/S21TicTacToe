@@ -9,7 +9,7 @@ public class UserService(IUserRepository users) : IUserService
     public bool Register(SignUpRequest signUpRequest)
     {
         if (users.ExistsByLogin(signUpRequest.Login)) throw new UserAlreadyExistsException($"User with login '{signUpRequest.Login}' already exists.");
-        users.Register(new User(Guid.NewGuid(), signUpRequest.Login), signUpRequest.Password);
+        users.Register(new User(Guid.NewGuid(), signUpRequest.Login, 0, 0, 0), signUpRequest.Password);
         return true;
     }
 

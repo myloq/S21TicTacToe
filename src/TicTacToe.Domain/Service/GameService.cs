@@ -5,7 +5,7 @@ using TicTacToe.Domain.Model;
 
 namespace TicTacToe.Domain.Service;
 
-public class GameService(IRepository repository) : IGameService
+public class GameService(IRepository repository, IUserRepository userRepository) : IGameService
 {
     public Game CreateGame(Guid userId, bool againstBot)
     {
@@ -49,6 +49,8 @@ public class GameService(IRepository repository) : IGameService
         {
             current.ChangeStatus(status);
             if (status == GameStatus.Win) current.WinnerId = userId;
+            
+            UpdateStatistic(current, status);
             repository.Save(current);
             return current;
         }
@@ -64,6 +66,7 @@ public class GameService(IRepository repository) : IGameService
             {
                 botMove.ChangeStatus(status);
                 if (status == GameStatus.Win) botMove.WinnerId = null;
+                UpdateStatistic(botMove, status);
             }
 
             repository.Save(botMove);
@@ -72,6 +75,47 @@ public class GameService(IRepository repository) : IGameService
 
         repository.Save(current);
         return current;
+    }
+    
+    private void UpdateStatistic(Game current, GameStatus status)
+    {
+        var pl1 = userRepository.GetById(current.Player1Id)!;
+        var pl2 = current.Player2Id != null ? userRepository.GetById(current.Player2Id.Value) : null;
+
+        if (status == GameStatus.Draw)
+        {
+            pl1.Draws++;
+            userRepository.Update(pl1);
+            if (pl2 != null)
+            {
+                pl2.Draws++;
+                userRepository.Update(pl2);
+            }
+            return;
+        }
+        
+        if (current.WinnerId == null) 
+        {
+            pl1.Losses++;
+            userRepository.Update(pl1);
+        }
+        else if (current.WinnerId == pl1.Id) 
+        {
+            pl1.Wins++;
+            userRepository.Update(pl1);
+            if (pl2 != null)
+            {
+                pl2.Losses++;
+                userRepository.Update(pl2);
+            }
+        }
+        else if (pl2 != null && current.WinnerId == pl2.Id) 
+        {
+            pl1.Losses++;
+            userRepository.Update(pl1);
+            pl2.Wins++;
+            userRepository.Update(pl2);
+        }
     }
 
     public Game GetBestMove(Game game)
@@ -222,5 +266,10 @@ public class GameService(IRepository repository) : IGameService
     public IEnumerable<Game> GetGameHistory(Guid userId)
     {
         return repository.GetCompletedGames(userId);
+    }
+
+    public IEnumerable<LeaderboardEntry> GetTopPlayers(int count)
+    {
+        return userRepository.GetTopPlayers(count);
     }
 }

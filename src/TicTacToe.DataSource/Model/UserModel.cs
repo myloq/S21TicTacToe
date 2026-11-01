@@ -17,4 +17,8 @@ public class UserModel
     [Column("password")]
     [MaxLength(64)]
     public required string Password { get; set; }
+    
+    [Column("wins")] public int Wins { get; set; }
+    [Column("losses")] public int Losses { get; set; }
+    [Column("draws")] public int Draws { get; set; }
 }

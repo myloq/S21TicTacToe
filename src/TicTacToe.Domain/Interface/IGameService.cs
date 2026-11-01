@@ -10,4 +10,5 @@ public interface IGameService
     IEnumerable<Game> GetAvailableGames(Guid userId);
     Game JoinGame(Guid currentUserId, Guid gameId);
     IEnumerable<Game> GetGameHistory(Guid userId);
+    IEnumerable<LeaderboardEntry> GetTopPlayers(int count);
 }
