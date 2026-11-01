@@ -8,7 +8,7 @@ using TicTacToe.Datasource;
 
 #nullable disable
 
-namespace TicTacToe.Migrations
+namespace TicTacToe.DataSource.Migrations
 {
     [DbContext(typeof(AppDbContext))]
     partial class AppDbContextModelSnapshot : ModelSnapshot
