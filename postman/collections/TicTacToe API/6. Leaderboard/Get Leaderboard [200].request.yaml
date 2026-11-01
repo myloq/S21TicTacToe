@@ -1,0 +1,42 @@
+$kind: http-request
+url: "{{baseUrl}}/game/leaderboard?count=5"
+method: GET
+queryParams:
+  count: "5"
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: "pm.test(\"Status 200 OK\", () => pm.response.to.have.status(200));\r
+
+      \r
+
+      pm.test(\"Returns an array\", () => {\r
+
+      \    pm.expect(pm.response.json()).to.be.an('array');\r
+
+      });\r
+
+      \r
+
+      pm.test(\"Leaderboard is sorted by WinRatio\", () => {\r
+
+      \    const list = pm.response.json();\r
+
+      \    if (list.length > 1) {\r
+
+      \        // Проверяем, что каждый следующий элемент имеет винрейт меньше или равный предыдущему\r
+
+      \        for (let i = 0; i < list.length - 1; i++) {\r
+
+      \            pm.expect(list[i].winRatio).to.be.at.least(list[i+1].winRatio);\r
+
+      \        }\r
+
+      \    }\r
+
+      });"
+    language: text/javascript
+order: 1000

@@ -3,16 +3,11 @@ name: Join Own Game [400/404]
 url: "{{baseUrl}}/game/{{gameId}}/join"
 method: POST
 auth:
-  type: basic
+  type: bearer
   credentials:
-    username: "{{username}}"
-    password: "{{password}}"
+    token: "{{accessToken}}"
 scripts:
   - type: afterResponse
-    code: |-
-      // Ожидаем ошибку, так как нельзя присоединиться к своей игре
-      pm.test("Status is 400 or 404", () => {
-          pm.expect([400, 404]).to.include(pm.response.code);
-      });
+    code: pm.test("Status is 400 or 404", () => pm.expect([400, 404]).to.include(pm.response.code));
     language: text/javascript
 order: 4000

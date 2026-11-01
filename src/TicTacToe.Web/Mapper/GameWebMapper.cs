@@ -16,13 +16,14 @@ public static class GameWebMapper
         CurrentPlayerId = game.CurrentPlayerId,
         WinnerId = game.WinnerId,
         Player1Symbol = game.Player1Symbol,
-        Player2Symbol = game.Player2Symbol
+        Player2Symbol = game.Player2Symbol,
+        CreatedAt = game.CreatedAt
     };
 
     public static Game ToDomain(GameWeb web)
     {
         var s = Enum.TryParse<GameStatus>(web.Status, out var status) ? status : GameStatus.InProgress;
-        return new Game(web.Id, Guid.Empty, null, new GameField(ToRectArray(web.Board)), s, null, null, 0, 0);
+        return new Game(web.Id, Guid.Empty, null, new GameField(ToRectArray(web.Board)), s, null, null, 0, 0, DateTime.Now);
     }
 
     private static int[][] ToJaggedArray(int[,] array)

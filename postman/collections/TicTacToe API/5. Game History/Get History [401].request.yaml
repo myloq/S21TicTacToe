@@ -1,0 +1,16 @@
+$kind: http-request
+url: "{{baseUrl}}/game/history"
+method: GET
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: "// Проверяем, что сервер не пустил нас и вернул 401\r
+
+      pm.test(\"Status code is 401 Unauthorized\", function () {\r
+
+      \    pm.response.to.have.status(401);\r
+
+      });"
+    language: text/javascript
+order: 2000

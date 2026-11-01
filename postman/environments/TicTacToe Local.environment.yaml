@@ -8,9 +8,15 @@ values:
     value: ''
   - key: userId
     value: ''
+  - key: accessToken
+    value: ''
+  - key: refreshToken
+    value: ''
   - key: player2_username
     value: ''
   - key: player2_userId
+    value: ''
+  - key: player2_accessToken
     value: ''
   - key: gameId
     value: ''

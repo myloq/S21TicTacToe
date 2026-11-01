@@ -15,6 +15,7 @@ public class GameModel
     [Column("player2Symbol")] public int Player2Symbol { get; set; }
     [Required] [Column("board")] [MaxLength(64)] public string BoardJson { get; set; } = "[[0,0,0],[0,0,0],[0,0,0]]";
     [Column("status")] public int Status { get; set; }
+    [Column("created_at")] public DateTime CreatedAt { get; init; }
     [NotMapped]
     public int[,] Board
     {

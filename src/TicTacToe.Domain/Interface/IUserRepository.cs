@@ -8,4 +8,6 @@ public interface IUserRepository
     void Register(User user, string password);
     public bool TryAuthenticate(string login, string password, out Guid userId);
     User? GetById(Guid id);
+    void Update(User user);
+    IEnumerable<LeaderboardEntry> GetTopPlayers(int count);
 }

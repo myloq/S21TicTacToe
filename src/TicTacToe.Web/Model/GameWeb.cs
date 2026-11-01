@@ -12,4 +12,5 @@ public class GameWeb
     public Guid? WinnerId { get; set; }
     public int Player1Symbol { get; set; }
     public int Player2Symbol { get; set; }
+    public DateTime CreatedAt { get; set; }
 }

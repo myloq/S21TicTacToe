@@ -1,0 +1,50 @@
+$kind: http-request
+url: "{{baseUrl}}/game/history"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: "// Проверяем, что сервер ответил успешно\r
+
+      pm.test(\"Status code is 200 OK\", function () {\r
+
+      \    pm.response.to.have.status(200);\r
+
+      });\r
+
+      \r
+
+      // Проверяем, что в ответе пришел массив (даже если он пустой)\r
+
+      pm.test(\"Response is an array\", function () {\r
+
+      \    const responseData = pm.response.json();\r
+
+      \    pm.expect(responseData).to.be.an('array');\r
+
+      });\r
+
+      \r
+
+      // Дополнительная проверка: если игры есть, проверяем, что у них правильные статусы\r
+
+      pm.test(\"All games in history are completed (Win or Draw)\", function () {\r
+
+      \    const games = pm.response.json();\r
+
+      \    if (games.length > 0) {\r
+
+      \        games.forEach(game => {\r
+
+      \            pm.expect(game.status).to.be.oneOf(['Win', 'Draw']);\r
+
+      \        });\r
+
+      \    }\r
+
+      });"
+    language: text/javascript
+order: 1000

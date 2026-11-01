@@ -35,6 +35,10 @@ namespace TicTacToe.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("board");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
                     b.Property<Guid?>("CurrentPlayerId")
                         .HasColumnType("uuid")
                         .HasColumnName("currentPlayerId");
@@ -75,17 +79,29 @@ namespace TicTacToe.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<int>("Draws")
+                        .HasColumnType("integer")
+                        .HasColumnName("draws");
+
                     b.Property<string>("Login")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("login");
 
+                    b.Property<int>("Losses")
+                        .HasColumnType("integer")
+                        .HasColumnName("losses");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("password");
+
+                    b.Property<int>("Wins")
+                        .HasColumnType("integer")
+                        .HasColumnName("wins");
 
                     b.HasKey("PlayerId");
 

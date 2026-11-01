@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 using TicTacToe.Domain.Exceptions;
 
 namespace TicTacToe.Web.ExceptionHandling;

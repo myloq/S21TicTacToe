@@ -18,7 +18,7 @@ public class WebController(IGameService gameService) : ControllerBase
     [HttpPost]
     public IActionResult NewGame([FromBody] CreateGameRequest request)
     {
-        bool againstBot = request.OpponentType == "bot";
+        var againstBot = request.OpponentType == "bot";
         return Ok(GameWebMapper.ToWeb(gameService.CreateGame(CurrentUserId, againstBot)));
     }
     
@@ -48,5 +48,19 @@ public class WebController(IGameService gameService) : ControllerBase
         var incoming = GameWebMapper.ToDomain(request);
         var result = gameService.MakeMove(CurrentUserId, id, incoming);
         return Ok(GameWebMapper.ToWeb(result));
+    }
+
+    [HttpGet("history")]
+    public IActionResult GetHistory()
+    {
+        var result = gameService.GetGameHistory(CurrentUserId).Select(GameWebMapper.ToWeb);
+        return Ok(result);
+    }
+    
+    [HttpGet("leaderboard")]
+    public IActionResult GetLeaderboard([FromQuery] int count = 10)
+    {
+        var topPlayers = gameService.GetTopPlayers(count);
+        return Ok(topPlayers);
     }
 }

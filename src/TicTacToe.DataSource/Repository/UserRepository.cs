@@ -22,11 +22,12 @@ public class UserRepository(AppDbContext db) : IUserRepository
     public bool TryAuthenticate(string login, string password, out Guid userId)
     {
         var user = db.Users.FirstOrDefault(u => u.Login == login);
-        if (user is null || user.Password != password)
+        if (user is null || !BCrypt.Net.BCrypt.Verify(password, user.Password))
         {
             userId = Guid.Empty;
             return false;
         }
+
         userId = user.PlayerId;
         return true;
     }
@@ -34,6 +35,29 @@ public class UserRepository(AppDbContext db) : IUserRepository
     public User? GetById(Guid id)
     {
         var model = db.Users.Find(id);
-        return model is null ? null : new User(model.PlayerId, model.Login);
+        return model is null ? null : new User(model.PlayerId, model.Login, model.Wins, model.Losses, model.Draws);
+    }
+
+    public void Update(User user)
+    {
+        var model = db.Users.Find(user.Id)!;
+        model.Wins = user.Wins;
+        model.Draws = user.Draws;
+        model.Losses = user.Losses;
+        db.Update(model);
+    }
+
+    public IEnumerable<LeaderboardEntry> GetTopPlayers(int count)
+    {
+        return db.Users
+            .OrderByDescending(u => (double)u.Wins / (u.Losses + u.Draws + u.Wins + 1))
+            .Take(count)
+            .Select(u => new LeaderboardEntry
+            {
+                Login = u.Login, 
+                UserId = u.PlayerId,
+                WinRatio = (u.Losses + u.Draws) == 0 ? u.Wins : (double)u.Wins / (u.Losses + u.Draws + u.Wins)
+            })
+            .ToList();
     }
 }

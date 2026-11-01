@@ -1,0 +1,14 @@
+$kind: http-request
+url: "{{baseUrl}}/auth/me"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status 200", () => pm.response.to.have.status(200));
+      pm.test("Correct user returned", () => pm.expect(pm.response.json().id).to.eql(pm.environment.get('userId')));
+    language: text/javascript
+order: 3000
