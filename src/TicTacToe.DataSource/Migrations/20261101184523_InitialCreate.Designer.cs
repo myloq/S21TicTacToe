@@ -9,11 +9,11 @@ using TicTacToe.Datasource;
 
 #nullable disable
 
-namespace TicTacToe.Migrations
+namespace TicTacToe.DataSource.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261031195728_AddCreatedAtToGames")]
-    partial class AddCreatedAtToGames
+    [Migration("20261101184523_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -82,17 +82,29 @@ namespace TicTacToe.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<int>("Draws")
+                        .HasColumnType("integer")
+                        .HasColumnName("draws");
+
                     b.Property<string>("Login")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("login");
 
+                    b.Property<int>("Losses")
+                        .HasColumnType("integer")
+                        .HasColumnName("losses");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("password");
+
+                    b.Property<int>("Wins")
+                        .HasColumnType("integer")
+                        .HasColumnName("wins");
 
                     b.HasKey("PlayerId");
 
